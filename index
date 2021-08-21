@@ -1,0 +1,93 @@
+if(!empty($arrIds)){
+	$measure = Local\Catalog\MeasureRatio::getList('PRODUCT_ID', ['id'=>$ids]);
+	$Price = Local\Catalog\Price::getList('ID', ['select'=>['PRODUCT_ID','CATALOG_GROUP_ID', 'EXTRA_ID', 'PRICE'], 'filter'=>['PRODUCT_ID'=>$ids], 'order'=>["ID"=>"ASC"]]);
+}
+
+if(!empty($arrIdsSKU)){
+	$measureSKU = Local\Catalog\MeasureRatio::getList('PRODUCT_ID', ['id'=>$idsSKU]);
+	$PriceSKU = Local\Catalog\Price::getList('ID', ['select'=>['PRODUCT_ID','CATALOG_GROUP_ID', 'EXTRA_ID', 'PRICE'], 'filter'=>['PRODUCT_ID'=>$idsSKU], 'order'=>["ID"=>"ASC"]]);
+}
+foreach ($zakazy as $vSite) {
+	foreach ($vSite as $props) {
+		$arResult[$props['ID']] = [
+			'UF_ACTION' => 'ASSEMBLED',
+			'UF_DATE' => date('d.m.Y H:i:s'),
+			'UF_ZAKAZY_ID' => $props['ID'],
+			'UF_SITE' => $props['UF_SITE'],
+			'UF_ORDER_ID' => $props['UF_ORDER_ID'],
+			'UF_PRODUCT_ORIGIN_ID' => $props['UF_PRODUCT_ID'],
+			'UF_ORIGINAL_SKU_ID' => $props['UF_SKU_ID'],
+			'UF_ASSEMBLED' => $props['UF_CHECK_SOBRAN']?:0,
+			'UF_DATE_ASSEMBLED' => $props['UF_DATE_SOBRAN'],
+			'UF_QUANTITY_IN_ORDER' => $props['UF_QUANTITY'],
+			'UF_QUANTITY_FAKT' => $props['UF_QUANTITY_FACT']?:0,
+			'UF_QUANTITY_SORT' => $props['UF_SORT_FAKT']?:0,
+			'UF_QUANTITY_UPAK' => $props['UF_UPAK_FAKT']?:0,
+			'UF_SIZE' => $props['UF_PROPS'],
+			'UF_ADD_NOT_FULL' => $props['UF_SOBRAN_NOT_FULL']?:0,
+			'UF_PRODUCT_ID' => $arrIds[$site[$props['UF_SITE']]['UF_IBLOCK']][$props['UF_PRODUCT_ID']]["ID"],
+			'UF_SKU_ID' => $arrIdsSKU[$site[$props['UF_SITE']]['UF_IBLOCK_TP']][$props['UF_SKU_ID']]["ID"],
+			'UF_COUNT_OFFER' => preg_replace("/[^0-9]/", '', $arrIdsSKU[$site[$props['UF_SITE']]['UF_IBLOCK_TP']][$props['UF_SKU_ID']]["PROPERTY_COUNT_OFFER_VALUE"])?:0,
+			'UF_PRICE_RETAIL' => $props['UF_PRICE']?:0,
+			'UF_PRICE_RETAIL_DISC' => $props['UF_PRICE_DISC']?:0,
+			'UF_ADD_OLD_ORDER' => $props['UF_ADD_OLD_ORDER'],
+			'UF_DATE_NO' => $props['UF_DATE_NO'],
+			'UF_DATE_NO_SIZE' => $props['UF_DATE_NO_SIZE'],
+			'UF_BRAK_MODEL' => $props['UF_BRAK_MODEL']?:0,
+			'UF_BRAK_SIZE' => $props['UF_BRAK_SIZE']?:0,
+			'UF_BRAK_REJECT' => $props['UF_BRAK_REJECT']?:0,
+			'UF_BRAK' => $props['UF_BRAK']?:0,
+			'UF_BRAK_NOFOUND' => $props['UF_BRAK_NOFOUND']?:0,
+			'UF_DATE_BRAK_MODEL' => $props['UF_DATE_BRAK_MODEL'],
+			'UF_DATE_BRAK_SIZE' => $props['UF_DATE_BRAK_SIZE'],
+			'UF_DATE_BRAK_REJECT' => $props['UF_DATE_BRAK_REJECT'],
+			'UF_DATE_BRAK' => $props['UF_DATE_BRAK'],
+			'UF_DATE_BRAK_NOFOUND' => $props['UF_DATE_BRAK_NOFOUND'],
+			'UF_RECHECK' => $props['UF_RECHECK'],
+			'UF_DATE_RECHECK' => $props['UF_DATE_RECHECK'],
+			'UF_DEL' => $props['UF_DEL']		
+			
+		];
+		if(!empty($props['UF_SKU_ID'])){
+            $measureNRes = $measureSKU;
+            if($props['UF_SITE'] == 13){
+                $PriceSKUNRes = (!empty($props['UF_PRICE_DISC']))?$props['UF_PRICE_DISC']:$props['UF_PRICE'];
+            }else{
+                $PriceSKUNRes = $PriceSKU;
+            }
+			$SKU = true;
+		}else{
+            $measureNRes = $measure;
+            if($props['UF_SITE'] == 13){
+                $PriceSKUNRes = (!empty($props['UF_PRICE_DISC']))?$props['UF_PRICE_DISC']:$props['UF_PRICE'];
+            }else{
+                $PriceSKUNRes = $Price;
+            }
+			$SKU = false;		
+		}
+
+		$arResult[$props['ID']]['UF_SOLD'] = ($arrIds[$site[$props['UF_SITE']]['UF_IBLOCK']][$props['UF_PRODUCT_ID']]['PROPERTY_SOLD_VALUE'] == 'Y')?1:0;
+		$arResult[$props['ID']]['UF_SOLD_SIZE'] = $arrIds[$site[$props['UF_SITE']]['UF_IBLOCK']][$props['UF_PRODUCT_ID']]['PROPERTY_NO_SIZE_VALUE'];
+        $arResult[$props['ID']]['UF_MEASURE_RATIO'] = $measureNRes[$arrIds[$site[$props['UF_SITE']]['UF_IBLOCK']][$props['UF_PRODUCT_ID']]["ID"]]['RATIO']?:1;
+        if($props['UF_SITE'] == 13){
+            $arResultN[$props['ID']]['UF_PROVIDER'] = $arrIds[$site[$props['UF_SITE']]['UF_IBLOCK']][$props['UF_PRODUCT_ID']]['PROPERTY_PROVIDERS_SADOVOD_VALUE'];
+        }else{
+            $arResult[$props['ID']]['UF_PROVIDER'] = $arrIds[$site[$props['UF_SITE']]['UF_IBLOCK']][$props['UF_PRODUCT_ID']]['PROPERTY_IB_PROVIDER_VALUE'];
+        }
+		// if($props['UF_BRAK_MODEL'] > 0 || $props['UF_BRAK_SIZE'] > 0 || $props['UF_BRAK_REJECT'] > 0 || $props['UF_BRAK'] > 0 || $props['UF_BRAK_NOFOUND'] > 0) $arResult[$props['ID']]['UF_BRAK_COUNT'] = $props['UF_BRAK_MODEL'] + $props['UF_BRAK_SIZE'] + $props['UF_BRAK_REJECT'] + $props['UF_BRAK'] + $props['UF_BRAK_NOFOUND'];
+        if($props['UF_SITE'] == 13){
+            if(!empty($props['UF_SKU_ID'])){
+                $arResult[$props['ID']]['UF_PRICE_BASE'] = (!empty($props['UF_PRICE_DISC']))?$props['UF_PRICE_DISC']:$props['UF_PRICE'];
+            }else{
+                $arResult[$props['ID']]['UF_PRICE_BASE'] = (!empty($props['UF_PRICE_DISC']))?$props['UF_PRICE_DISC']:$props['UF_PRICE'];
+            }
+        }else{
+            if(!empty($props['UF_SKU_ID'])) $arResult[$props['ID']]['UF_PRICE_BASE'] = $PriceSKU[$arrIdsSKU[$site[$props['UF_SITE']]['UF_IBLOCK_TP']][$props['UF_SKU_ID']]["ID"]][1]['PRICE']; else $arResult[$props['ID']]['UF_PRICE_BASE'] = $Price[$arrIds[$site[$props['UF_SITE']]['UF_IBLOCK']][$props['UF_PRODUCT_ID']]["ID"]][1]['PRICE'];
+
+            if(!empty($props['UF_SKU_ID'])) $arResult[$props['ID']]['UF_PRICE_OPT'] = $PriceSKU[$arrIdsSKU[$site[$props['UF_SITE']]['UF_IBLOCK_TP']][$props['UF_SKU_ID']]["ID"]][3]['PRICE']; else $arResult[$props['ID']]['UF_PRICE_OPT'] = $Price[$arrIds[$site[$props['UF_SITE']]['UF_IBLOCK']][$props['UF_PRODUCT_ID']]["ID"]][3]['PRICE'];
+        }
+		Local\Hlblock\Endofdaybalance::add($arResult[$props['ID']]);
+
+	}
+
+}
